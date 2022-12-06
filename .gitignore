@@ -1,0 +1,14 @@
+.DS_Store
+**/..classpath
+**/.project
+**/.settings/
+**/target/
+*.orig
+.classpath
+.project
+.settings
+/target
+
+# IntelliJ
+.idea/
+*.iml
