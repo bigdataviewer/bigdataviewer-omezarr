@@ -13,8 +13,8 @@
 	<artifactId>bigdataviewer-omezarr</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 
-	<name>TODO</name>
-	<description>TODO</description>
+	<name>BigDataViewer OME-Zarr</name>
+	<description>This package provides multi image OME-Zarr support in bigdataviewer.</description>
 	<url>https://github.com/bigdataviewer/bigdataviewer-omezarr</url>
 	<inceptionYear>2022</inceptionYear>
 	<organization>
