@@ -70,6 +70,7 @@ import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 import org.janelia.saalfeldlab.n5.s3.AmazonS3KeyValueAccess;
 import org.janelia.saalfeldlab.n5.zarr.N5ZarrReader;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
+import java.io.IOException;
 
 import static bdv.img.omezarr.Multiscales.MULTI_SCALE_KEY;
 

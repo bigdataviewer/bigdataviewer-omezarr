@@ -30,7 +30,9 @@ package bdv.img.omezarr;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import org.janelia.saalfeldlab.n5.GsonAttributesParser;
 
 import java.io.BufferedWriter;
 import java.io.IOException;

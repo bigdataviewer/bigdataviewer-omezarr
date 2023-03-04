@@ -6,13 +6,13 @@
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -59,6 +59,7 @@ import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.view.Views;
+import java.io.Closeable;
 
 /**
  * Image loader for OME-NGFF images that are defined as views in the xml file.
@@ -319,11 +320,11 @@ public class ZarrImageLoader implements ViewerImgLoader, MultiResolutionImgLoade
             // Assume everything is the same in case there are multiple timepoints
             final Multiscales mscale = tpMmultiscaleImages.get(0).getMultiscales();
             final int numResolutions = tpMmultiscaleImages.get(0).numResolutions();
-            final Multiscales.CoordinateTransformations[] globalTransformations = mscale.getCoordinateTransformations();
+            final Multiscales.CoordinateTransformation[] globalTransformations = mscale.getCoordinateTransformations();
 
             mipmaptransforms = new AffineTransform3D[numResolutions];
             for (int i_res = 0; i_res < numResolutions; ++i_res) {
-                final Multiscales.CoordinateTransformations[] datasetTransformations =
+                final Multiscales.CoordinateTransformation[] datasetTransformations =
                         mscale.getDatasets()[i_res].coordinateTransformations;
                 mipmaptransforms[i_res] = concatenateOMETransforms(mscale, globalTransformations,
                         datasetTransformations);

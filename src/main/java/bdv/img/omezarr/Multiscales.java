@@ -46,6 +46,8 @@ import java.util.*;
  * {@code axes} follows the t,ch,z,y,x order; but {@code axisList} has the reversed, java order.
  * {@code coordinateTransformations} follows the JSON order, first element is applicable first.
  *
+ * Fields that are not defined transient will be serialized by gson.
+ *
  * Original code copied from {@code org.embl.mobie.io.ome.zarr.util.OmeZarrMultiscales}
  *
  */
@@ -55,38 +57,71 @@ public class Multiscales
     public static final String MULTI_SCALE_KEY = "multiscales";
 
     // Serialisation
-    public String version;
+    public String version = "0.4"; // default version
     public String name;
     public String type;
     public Axis[] axes; // from v0.4+ within JSON
     public Dataset[] datasets;
-    public CoordinateTransformations[] coordinateTransformations; // from v0.4+ within JSON
+    public CoordinateTransformation[] coordinateTransformations; // from v0.4+ within JSON
 
     // Runtime
 
     // Simply contains the {@code Axes[] axes}
     // but in reversed order to accommodate
     // the Java array ordering of the image data.
-    private List< Axis > axisList;
-    public int numDimensions;
+    private transient List< Axis > axisList;
+    public transient int numDimensions;
 
     public Multiscales() {
     }
 
     public static class Dataset {
         public String path;
-        public CoordinateTransformations[] coordinateTransformations;
+        public CoordinateTransformation[] coordinateTransformations;
+        public void setOMEIdentity(int numDimensions)
+        {
+            coordinateTransformations=new CoordinateTransformation[]{
+            new CoordinateTransformation(numDimensions,true),
+             new CoordinateTransformation(numDimensions, false)};
+        }
     }
 
     /**
      * Object to represent a coordinateTransformation in the json metadata
      * Elements in {@code scale} and {@code translation} follow the JSON order of axes.
      */
-    public static class CoordinateTransformations {
+    public static class CoordinateTransformation {
         public String type;
         public double[] scale;
         public double[] translation;
         public String path;
+        CoordinateTransformation(int numDimensions, boolean scale)
+        {
+            if (scale)
+                setIdentityScale(numDimensions);
+            else setZeroTranslation(numDimensions);
+        }
+
+        public CoordinateTransformation() {
+
+        }
+
+        public void setIdentityScale(int numDimensions)
+        {
+            type="scale";
+            scale=new double[numDimensions];
+            Arrays.fill(scale, 1.0);
+            translation=null;
+            path=null;
+        }
+        public void setZeroTranslation(int numDimensions)
+        {
+            type="translation";
+            translation=new double[numDimensions];
+            Arrays.fill(translation, 0.);
+            scale=null;
+            path=null;
+        }
     }
 
     public static class Axis
@@ -186,13 +221,57 @@ public class Multiscales
      */
     public void setAxes(Collection<Axis> newaxes)
     {
-        axisList.clear();
+        axisList = new ArrayList<>();
         axisList.addAll(newaxes);
         numDimensions = axisList.size();
         axes = new Axis[numDimensions];
-        for (int i=numDimensions; i-- >0; ) {
-            axes[i] = axisList.get(i);
+        for (int i=numDimensions, z=0; i-- >0; ++z) {
+            axes[i] = axisList.get(z);
         }
+    }
+
+    public void setDatasets(Collection<Dataset> newdatasets)
+    {
+        datasets=newdatasets.toArray(new Dataset[0]);
+    }
+
+    /**
+     * Set OME axes definition to represent the given number of spatial and optionally channel and time dimensions.
+     *
+     * @param spatialDim Number of spatial dimensions.
+     * @param cPresent Channel dimension present ?
+     * @param tPresent Time dimension present ?
+     */
+    public void initOMEAxes(int spatialDim, boolean cPresent, boolean tPresent)
+    {
+        numDimensions = spatialDim;
+        List<String> spNames = Arrays.asList( Axis.X_AXIS_NAME, Axis.Y_AXIS_NAME, Axis.Z_AXIS_NAME );
+        List<Axis> axDefs = new ArrayList<>();
+        for (int i=0; i<numDimensions; i++)
+        {
+            Axis A = new Axis();
+            A.name = spNames.get(i);
+            A.type = Axis.SPATIAL_TYPE;
+            A.unit = "micrometer";
+            axDefs.add(A);
+        }
+        if (cPresent) {
+            Axis A = new Axis();
+            A.name = "c";
+            A.type = Axis.CHANNEL_TYPE;
+            axDefs.add(A);
+            ++numDimensions;
+        }
+
+        if (tPresent)
+        {
+            Axis A = new Axis();
+            A.name = "t";
+            A.type = Axis.TIME_TYPE;
+            axDefs.add(A);
+            ++numDimensions;
+        }
+        setAxes(axDefs);
     }
 
     /**
@@ -203,7 +282,7 @@ public class Multiscales
      *
      * @return CoordinateTransformations[]
      */
-    public CoordinateTransformations[] getCoordinateTransformations()
+    public CoordinateTransformation[] getCoordinateTransformations()
     {
         return coordinateTransformations;
     }
@@ -227,9 +306,9 @@ public class Multiscales
         M.datasets[0] = new Dataset();
 
         m2.put(M.MULTI_SCALE_KEY, M);
-//        GsonAttributesParser.insertAttributes(map, m2, gson);
-//        final BufferedWriter w = new BufferedWriter(new OutputStreamWriter(System.out));
-//        GsonAttributesParser.writeAttributes(w, map, gson);
+        GsonAttributesParser.insertAttributes(map, m2, gson);
+        final BufferedWriter w = new BufferedWriter(new OutputStreamWriter(System.out));
+        GsonAttributesParser.writeAttributes(w, map, gson);
     }
 }
 
