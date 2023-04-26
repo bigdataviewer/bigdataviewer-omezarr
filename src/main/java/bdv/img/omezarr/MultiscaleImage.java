@@ -29,7 +29,7 @@
 package bdv.img.omezarr;
 
 import bdv.img.cache.VolatileCachedCellImg;
-import bdv.util.volatiles.SharedQueue;
+import bdv.cache.SharedQueue;
 import bdv.util.volatiles.VolatileTypeMatcher;
 import bdv.util.volatiles.VolatileViews;
 import com.google.gson.JsonArray;
@@ -56,6 +56,7 @@ import org.janelia.saalfeldlab.n5.zarr.N5ZarrReader;
 
 //import javax.annotation.Nullable;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
 import static bdv.img.omezarr.Multiscales.MULTI_SCALE_KEY;
@@ -70,7 +71,7 @@ public class MultiscaleImage< T extends NativeType< T > & RealType< T >, V exten
 {
 	private final String multiscalePath;
 
-	private final SharedQueue queue;
+	private SharedQueue queue;
 
 	private int numResolutions;
 
@@ -98,22 +99,51 @@ public class MultiscaleImage< T extends NativeType< T > & RealType< T >, V exten
 	 * TODO
 	 */
 	public MultiscaleImage(
-			final String multiscalePath,
-			final SharedQueue queue )
+			final String multiscalePath)
 	{
 		this.multiscalePath = multiscalePath;
-		this.queue = queue;
 	}
 
+	/**
+	 * The delayed initialization of images is to have the shared queue set by ZarrImageLoader first
+	 */
+	private void initImages()
+	{
+		if (imgs != null)
+			return;
+		try {
+			final N5ZarrReader n5ZarrReader = new N5ZarrReader(multiscalePath);
+			// Initialize the images for all resolutions.
+			//
+			// TODO only on demand
+			// See N5ImageLoader.prepareCachedImage
+			imgs = new CachedCellImg[ numResolutions ];
+			vimgs = new RandomAccessibleInterval[ numResolutions ];
+
+			for ( int resolution = 0; resolution < numResolutions; ++resolution )
+			{
+				imgs[ resolution ] = N5Utils.openVolatile( n5ZarrReader, multiscales.getDatasets()[ resolution ].path );
+
+				if ( queue == null )
+					vimgs[ resolution ] = VolatileViews.wrapAsVolatile( imgs[ resolution ] );
+				else
+					vimgs[ resolution ] = VolatileViews.wrapAsVolatile( imgs[ resolution ], queue );
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new RuntimeException(e);
+		}
+
+	}
+
+	/**
+	 * Read metadata, set image type, but does not initialize images because queue is not yet available
+	 */
 	private void init()
 	{
-		if ( imgs != null ) return;
-
-		try
+		if ( multiscales != null ) return;
+		try (final N5ZarrReader n5ZarrReader = new N5ZarrReader( multiscalePath ))
 		{
-			// FIXME support S3
-			final N5ZarrReader n5ZarrReader = new N5ZarrReader( multiscalePath );
-
 			// Fetch metadata
 			//
 			Multiscales[] multiscalesArray = n5ZarrReader.getAttribute( "", MULTI_SCALE_KEY, Multiscales[].class );
@@ -164,22 +194,6 @@ public class MultiscaleImage< T extends NativeType< T > & RealType< T >, V exten
 			dimensions = multiDimensions[0];
 			dataType = multiDataType[0];
 			initTypes( dataType );
-
-			// Initialize the images for all resolutions.
-			//
-			// TODO only on demand
-			imgs = new CachedCellImg[ numResolutions ];
-			vimgs = new RandomAccessibleInterval[ numResolutions ];
-
-			for ( int resolution = 0; resolution < numResolutions; ++resolution )
-			{
-				imgs[ resolution ] = N5Utils.openVolatile( n5ZarrReader, datasets[ resolution ].path );
-
-				if ( queue == null )
-					vimgs[ resolution ] = VolatileViews.wrapAsVolatile( imgs[ resolution ] );
-				else
-					vimgs[ resolution ] = VolatileViews.wrapAsVolatile( imgs[ resolution ], queue );
-			}
 		}
 		catch ( Exception e )
 		{
@@ -250,6 +264,7 @@ public class MultiscaleImage< T extends NativeType< T > & RealType< T >, V exten
 	public CachedCellImg< T, ? > getImg( final int resolutionLevel )
 	{
 		init();
+		initImages();
 		return imgs[ resolutionLevel ];
 	}
 
@@ -261,6 +276,7 @@ public class MultiscaleImage< T extends NativeType< T > & RealType< T >, V exten
 	public RandomAccessibleInterval< V > getVolatileImg( final int resolutionLevel )
 	{
 		init();
+		initImages();
 		return vimgs[ resolutionLevel ];
 	}
 
@@ -286,6 +302,11 @@ public class MultiscaleImage< T extends NativeType< T > & RealType< T >, V exten
 		return queue;
 	}
 
+	public void setSharedQueue(SharedQueue sharedQueue)
+	{
+		queue = sharedQueue;
+	}
+
 	public int numDimensions()
 	{
 		return dimensions.length;
@@ -294,7 +315,7 @@ public class MultiscaleImage< T extends NativeType< T > & RealType< T >, V exten
 	public static void main( String[] args )
 	{
 		final String multiscalePath = "/Users/kgabor/data/davidf_sample_dataset/SmartSPIM_617052_sample.zarr";
-		final MultiscaleImage< ?, ? > multiscaleImage = new MultiscaleImage<>( multiscalePath, null );
+		final MultiscaleImage< ?, ? > multiscaleImage = new MultiscaleImage<>( multiscalePath);
 		multiscaleImage.dimensions();
 	}
 }
