@@ -11,7 +11,7 @@
 
 	<groupId>org.bigdataviewer</groupId>
 	<artifactId>bigdataviewer-omezarr</artifactId>
-	<version>0.0.2-SNAPSHOT</version>
+	<version>0.1.0-SNAPSHOT</version>
 
 	<name>BigDataViewer OME-Zarr</name>
 	<description>This package provides multi image OME-Zarr support in bigdataviewer.</description>
