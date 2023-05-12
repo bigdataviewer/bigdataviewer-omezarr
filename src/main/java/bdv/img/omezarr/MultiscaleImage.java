@@ -29,7 +29,8 @@
 package bdv.img.omezarr;
 
 import bdv.img.cache.VolatileCachedCellImg;
-import bdv.cache.SharedQueue;
+//import bdv.cache.SharedQueue;
+import bdv.util.volatiles.SharedQueue;
 import bdv.util.volatiles.VolatileTypeMatcher;
 import bdv.util.volatiles.VolatileViews;
 import com.google.gson.JsonArray;
