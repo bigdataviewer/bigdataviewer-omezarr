@@ -32,7 +32,8 @@ package bdv.img.omezarr;
 import bdv.AbstractViewerSetupImgLoader;
 import bdv.ViewerImgLoader;
 import bdv.cache.CacheControl;
-import bdv.cache.SharedQueue;
+//import bdv.cache.SharedQueue;
+import bdv.util.volatiles.SharedQueue;
 import bdv.img.cache.VolatileGlobalCellCache;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.generic.sequence.BasicViewSetup;
@@ -385,11 +386,10 @@ public class ZarrImageLoader implements ViewerImgLoader, MultiResolutionImgLoade
         requestedNumFetcherThreads = n;
     }
 
-    @Override
     public void setCreatedSharedQueue(final SharedQueue createdSharedQueue) {
         requestedSharedQueue = createdSharedQueue;
     }
-
+    
     public void close()
     {
         if ( isOpen )
