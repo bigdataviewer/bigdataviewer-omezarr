@@ -5,9 +5,7 @@
 	<parent>
 		<groupId>org.scijava</groupId>
 		<artifactId>pom-scijava</artifactId>
-<!--		<version>34.1.0</version>-->
-		<version>31.1.0</version>
-		<relativePath />
+		<version>36.0.0</version>
 	</parent>
 
 	<groupId>org.bigdataviewer</groupId>
@@ -89,6 +87,11 @@
 		<license.licenseName>bsd_2</license.licenseName>
 		<license.copyrightOwners>BigDataViewer developers.</license.copyrightOwners>
 
+
+		<n5.version>3.0.0-SNAPSHOT</n5.version>
+		<n5-aws-s3.version>3.2.1-SNAPSHOT</n5-aws-s3.version>
+		<n5-zarr.version>0.0.9-SNAPSHOT</n5-zarr.version>
+
 		<!-- NB: Deploy releases to the SciJava Maven repository. -->
 		<releaseProfiles>sign,deploy-to-scijava</releaseProfiles>
 	</properties>
@@ -104,33 +107,39 @@
 		<dependency>
 			<groupId>sc.fiji</groupId>
 			<artifactId>bigdataviewer-core</artifactId>
-			<version>10.4.6</version>
 		</dependency>
 		<dependency>
 			<groupId>sc.fiji</groupId>
 			<artifactId>bigdataviewer-vistools</artifactId>
-			<version>1.0.0-beta-32</version>
 		</dependency>
 		<dependency>
 			<groupId>net.imglib2</groupId>
 			<artifactId>imglib2-cache</artifactId>
-			<version>1.0.0-beta-17</version>
 		</dependency>
 		<dependency>
 			<groupId>net.imglib2</groupId>
 			<artifactId>imglib2</artifactId>
-			<version>6.1.0</version>
+		</dependency>
+
+
+		<!-- N5 -->
+		<dependency>
+			<groupId>org.janelia.saalfeldlab</groupId>
+			<artifactId>n5</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.janelia.saalfeldlab</groupId>
-			<artifactId>n5-imglib2</artifactId>
-			<version>5.0.0</version>
+			<artifactId>n5-aws-s3</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.janelia.saalfeldlab</groupId>
 			<artifactId>n5-zarr</artifactId>
-			<version>0.0.8</version>
 		</dependency>
+		<dependency>
+			<groupId>org.janelia.saalfeldlab</groupId>
+			<artifactId>n5-imglib2</artifactId>
+		</dependency>
+
 
 		<!-- test dependencies -->
 		<dependency>
@@ -138,5 +147,11 @@
 			<artifactId>junit</artifactId>
 			<scope>test</scope>
 		</dependency>
-    </dependencies>
+		<dependency>
+			<groupId>com.amazonaws</groupId>
+			<artifactId>aws-java-sdk-s3</artifactId>
+			<version>1.12.465</version>
+		</dependency>
+
+	</dependencies>
 </project>

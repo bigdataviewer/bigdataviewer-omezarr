@@ -31,7 +31,7 @@ package bdv.img.omezarr;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
-import org.janelia.saalfeldlab.n5.GsonAttributesParser;
+//import org.janelia.saalfeldlab.n5.GsonAttributesParser;
 import org.jcodings.util.Hash;
 
 import java.io.BufferedWriter;
@@ -227,9 +227,9 @@ public class Multiscales
         M.datasets[0] = new Dataset();
 
         m2.put(M.MULTI_SCALE_KEY, M);
-        GsonAttributesParser.insertAttributes(map, m2, gson);
-        final BufferedWriter w = new BufferedWriter(new OutputStreamWriter(System.out));
-        GsonAttributesParser.writeAttributes(w, map, gson);
+//        GsonAttributesParser.insertAttributes(map, m2, gson);
+//        final BufferedWriter w = new BufferedWriter(new OutputStreamWriter(System.out));
+//        GsonAttributesParser.writeAttributes(w, map, gson);
     }
 }
 

@@ -29,13 +29,19 @@
 package bdv.img.omezarr;
 
 
-import bdv.BigDataViewer;
 import bdv.ViewerImgLoader;
 import bdv.ViewerSetupImgLoader;
-import bdv.export.ProgressWriterConsole;
 import bdv.spimdata.SpimDataMinimal;
 import bdv.spimdata.XmlIoSpimDataMinimal;
-import bdv.viewer.ViewerOptions;
+import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.AnonymousAWSCredentials;
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import java.io.File;
+import java.util.Map;
+import java.util.TreeMap;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.XmlHelpers;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
@@ -44,12 +50,6 @@ import mpicbg.spim.data.generic.sequence.XmlIoBasicImgLoader;
 import mpicbg.spim.data.sequence.ViewId;
 import org.jdom2.Element;
 
-import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.TreeMap;
-
-import bdv.img.omezarr.ZarrImageLoader;
 import static mpicbg.spim.data.XmlHelpers.loadPath;
 import static mpicbg.spim.data.XmlKeys.IMGLOADER_FORMAT_ATTRIBUTE_NAME;
 
@@ -60,9 +60,17 @@ public class XmlIoZarrImageLoader implements XmlIoBasicImgLoader<ZarrImageLoader
     public Element toXml(final ZarrImageLoader imgLoader, final File basePath )
     {
         final Element e_imgloader = new Element( "ImageLoader" );
+        final MultiscaleImage.ZarrKeyValueReaderBuilder readerBuilder = imgLoader.getZarrKeyValueReaderBuilder();
         e_imgloader.setAttribute( IMGLOADER_FORMAT_ATTRIBUTE_NAME, "bdv.multimg.zarr" );
         e_imgloader.setAttribute( "version", "1.0" );
-        e_imgloader.addContent(XmlHelpers.pathElement("zarr", imgLoader.getBasePath(), null));
+        e_imgloader.addContent(XmlHelpers.pathElement("zarr",
+                new File(readerBuilder.getMultiscalePath()), null));
+        if (readerBuilder.getBucketName()!=null)
+        {
+            final Element e_bucket = new Element("s3bucket");
+            e_bucket.addContent(readerBuilder.getBucketName());
+            e_imgloader.addContent(e_bucket);
+        }
         final Element e_zgroups = new Element("zgroups");
         for (final Map.Entry<ViewId, String> ze: imgLoader.getZgroups().entrySet())
         {
@@ -93,8 +101,17 @@ public class XmlIoZarrImageLoader implements XmlIoBasicImgLoader<ZarrImageLoader
             final String path = c.getChild( "path" ).getText();
             zgroups.put( new ViewId( timepointId,setupId ), path );
         }
-
-        return new ZarrImageLoader(zpath.getAbsolutePath(), zgroups, sequenceDescription);
+        final Element s3Bucket = elem.getChild("s3bucket");
+        final MultiscaleImage.ZarrKeyValueReaderBuilder keyValueReaderBuilder;
+        if (s3Bucket==null)
+        {
+        keyValueReaderBuilder = new MultiscaleImage.ZarrKeyValueReaderBuilder(zpath.getAbsolutePath());
+        }
+        else
+        {
+            keyValueReaderBuilder = new MultiscaleImage.ZarrKeyValueReaderBuilder(s3Bucket.getText(), zpath.toString());
+        }
+        return new ZarrImageLoader(keyValueReaderBuilder, zgroups, sequenceDescription);
     }
 
     public static void main( String[] args ) throws SpimDataException
@@ -108,7 +125,7 @@ public class XmlIoZarrImageLoader implements XmlIoBasicImgLoader<ZarrImageLoader
         final ViewerSetupImgLoader<?, ?> setupImgLoader = imgLoader.getSetupImgLoader(0);
         int d = setupImgLoader.getImage(0).numDimensions();
         setupImgLoader.getMipmapResolutions();
-        BigDataViewer.open(spimData, "BigDataViewer Zarr Example", new ProgressWriterConsole(), ViewerOptions.options());
+//        BigDataViewer.open(spimData, "BigDataViewer Zarr Example", new ProgressWriterConsole(), ViewerOptions.options());
         System.out.println( "imgLoader = " + imgLoader );
         System.out.println( "setupimgLoader = " + setupImgLoader );
     }

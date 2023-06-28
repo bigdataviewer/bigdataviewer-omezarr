@@ -34,6 +34,16 @@ import bdv.ViewerImgLoader;
 import bdv.cache.CacheControl;
 import bdv.cache.SharedQueue;
 import bdv.img.cache.VolatileGlobalCellCache;
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.NavigableMap;
+import java.util.NavigableSet;
+import java.util.SortedMap;
+import java.util.SortedSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.generic.sequence.BasicViewSetup;
 import mpicbg.spim.data.generic.sequence.ImgLoaderHint;
@@ -49,14 +59,6 @@ import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.view.Views;
-import bdv.img.omezarr.MultiscaleImage;
-import bdv.img.omezarr.Multiscales;
-
-import java.io.Closeable;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Paths;
-import java.util.*;
 
 /**
  * Image loader for OME-NGFF images that are defined as views in the xml file.
@@ -66,9 +68,11 @@ import java.util.*;
  * Multiscale and MultiscaleImage keeps them as 5 dimensional.</p>
  */
 public class ZarrImageLoader implements ViewerImgLoader, MultiResolutionImgLoader, Closeable {
-    private final String zpath;
+//    private final String zpath;
     private final SortedMap<ViewId, String> zgroups;
     private final AbstractSequenceDescription<?, ?, ?> seq;
+    private final MultiscaleImage.ZarrKeyValueReaderBuilder zarrKeyValueReaderBuilder;
+
 
     private volatile boolean isOpen = false;
 
@@ -80,10 +84,10 @@ public class ZarrImageLoader implements ViewerImgLoader, MultiResolutionImgLoade
     private SortedMap<Integer, SetupImgLoader> setupImgLoaders;
 
 
-    public ZarrImageLoader(final String zpath, final SortedMap<ViewId, String> zgroups, final AbstractSequenceDescription<?, ?, ?> sequenceDescription) {
-        this.zpath = zpath;
+    public ZarrImageLoader(final MultiscaleImage.ZarrKeyValueReaderBuilder zarrKeyValueReaderBuilder, final SortedMap<ViewId, String> zgroups, final AbstractSequenceDescription<?, ?, ?> sequenceDescription) {
         this.zgroups = zgroups;
         this.seq = sequenceDescription;
+        this.zarrKeyValueReaderBuilder=zarrKeyValueReaderBuilder;
     }
 
     void openZarr() {
@@ -136,7 +140,7 @@ public class ZarrImageLoader implements ViewerImgLoader, MultiResolutionImgLoade
         if (firstVId == null)
             return null;
 
-        final MultiscaleImage<T, V> mscImg = new MultiscaleImage<>(Paths.get(zpath, zgroups.get(firstVId)).toString());
+        final MultiscaleImage<T, V> mscImg = new MultiscaleImage<>(zarrKeyValueReaderBuilder.getSubImage(zgroups.get(firstVId)));
         return new SetupImgLoader<T, V>(mscImg, firstVId, tpIds);
     }
 
@@ -146,8 +150,8 @@ public class ZarrImageLoader implements ViewerImgLoader, MultiResolutionImgLoade
         return cache;
     }
 
-    public File getBasePath() {
-        return new File(zpath);
+    public MultiscaleImage.ZarrKeyValueReaderBuilder getZarrKeyValueReaderBuilder() {
+        return zarrKeyValueReaderBuilder;
     }
 
     public SortedMap<ViewId, String> getZgroups() {
@@ -181,7 +185,7 @@ public class ZarrImageLoader implements ViewerImgLoader, MultiResolutionImgLoade
             for (int tpId : tpIdSet) {
                 // TODO validate that further timepoints have the same type
                 tpMmultiscaleImages.put(tpId, new MultiscaleImage<>(
-                        Paths.get(zpath, zgroups.get(new ViewId(tpId, setupId))).toString()));
+                        zarrKeyValueReaderBuilder.getSubImage(zgroups.get(new ViewId(tpId, setupId)))));
             }
 
             calculateMipmapTransforms();
