@@ -87,10 +87,9 @@
 		<license.licenseName>bsd_2</license.licenseName>
 		<license.copyrightOwners>BigDataViewer developers.</license.copyrightOwners>
 
-
-		<n5.version>3.0.0-SNAPSHOT</n5.version>
-		<n5-aws-s3.version>3.2.1-SNAPSHOT</n5-aws-s3.version>
-		<n5-zarr.version>0.0.9-SNAPSHOT</n5-zarr.version>
+		<n5.version>3.0.2</n5.version>
+		<n5-aws-s3.version>4.0.1</n5-aws-s3.version>
+		<n5-zarr.version>1.0.1</n5-zarr.version>
 
 		<!-- NB: Deploy releases to the SciJava Maven repository. -->
 		<releaseProfiles>sign,deploy-to-scijava</releaseProfiles>
