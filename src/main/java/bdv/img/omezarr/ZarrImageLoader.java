@@ -38,10 +38,9 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.NavigableMap;
 import java.util.NavigableSet;
+import java.util.Set;
 import java.util.SortedMap;
-import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
@@ -164,7 +163,7 @@ public class ZarrImageLoader implements ViewerImgLoader, MultiResolutionImgLoade
             implements MultiResolutionSetupImgLoader<T> {
         private int setupId;
 
-        private NavigableMap<Integer, MultiscaleImage<T, V>> tpMmultiscaleImages = new TreeMap<>();
+        private Map<Integer, MultiscaleImage<T, V>> tpMmultiscaleImages = new TreeMap<>();
         private double[][] mipmapresolutions;
         private AffineTransform3D[] mipmaptransforms;
 
@@ -175,7 +174,7 @@ public class ZarrImageLoader implements ViewerImgLoader, MultiResolutionImgLoade
          * @param tpIdSet     A sorted set of remaining timepoints to be added to this loader.
          *                    NO check at the moment that these images are compatible in type!
          */
-        public SetupImgLoader(final MultiscaleImage<T, V> firstMscImg, final ViewId firstVId, final SortedSet<Integer> tpIdSet) {
+        public SetupImgLoader(final MultiscaleImage<T, V> firstMscImg, final ViewId firstVId, final Set<Integer> tpIdSet) {
             super(firstMscImg.getType(), firstMscImg.getVolatileType());
             setupId = firstVId.getViewSetupId();
             /* TODO in zarr nothing guarantees that multiple resolutions of an image are of the same type.
