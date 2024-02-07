@@ -128,8 +128,8 @@ public class ZarrImageLoader implements ViewerImgLoader, MultiResolutionImgLoade
         }
     }
 
-    private <T extends NativeType<T> & RealType<T>, V extends Volatile<T> & NativeType<V> & RealType<V>>
-    SetupImgLoader<T, V> createSetupImgLoader(final int setupId) throws IOException {
+	private SetupImgLoader< ?, ? > createSetupImgLoader( final int setupId ) throws IOException
+	{
         final NavigableSet<Integer> tpIds = new TreeSet<>();
         for (final ViewId view : zgroups.keySet()) {
             if (view.getViewSetupId() == setupId) {
@@ -140,8 +140,8 @@ public class ZarrImageLoader implements ViewerImgLoader, MultiResolutionImgLoade
         if (firstVId == null)
             return null;
 
-        final MultiscaleImage<T, V> mscImg = new MultiscaleImage<>(zarrKeyValueReaderBuilder.getSubImage(zgroups.get(firstVId)));
-        return new SetupImgLoader<T, V>(mscImg, firstVId, tpIds);
+		final MultiscaleImage< ?, ? > mscImg = new MultiscaleImage<>( zarrKeyValueReaderBuilder.getSubImage( zgroups.get( firstVId ) ) );
+		return new SetupImgLoader<>( mscImg, firstVId, tpIds );
     }
 
     @Override
