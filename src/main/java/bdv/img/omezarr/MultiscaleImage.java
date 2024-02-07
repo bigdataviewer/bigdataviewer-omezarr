@@ -83,7 +83,7 @@ public class MultiscaleImage< T extends NativeType< T > & RealType< T >, V exten
 {
 	/**
 	 * Helper class to store the base multiscale image path and other
-	 * access credentials for creating readed instances either on local FS or from S3.
+	 * access credentials for creating reader instances either on local FS or from S3.
 	 *
 	 * Instances that are obtained by the copy-constructor after the credentials
 	 * or the connection is set, will share the same AWS credential
