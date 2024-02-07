@@ -104,6 +104,7 @@ public class ZarrImageLoader implements ViewerImgLoader, MultiResolutionImgLoade
                             final SetupImgLoader newLoader = createSetupImgLoader(setup.getId());
                             setupImgLoaders.put(setup.getId(), newLoader);
                             double [][] thisResolutions = newLoader.getMipmapResolutions();
+							// TODO (TP): This looks wrong. probably should be maxNumLevels = Math.max(maxNumLevels, thisResolutions.length);
                             for (int i_r =0; i_r < thisResolutions.length; ++i_r)
                                 maxNumLevels = Math.max( maxNumLevels, thisResolutions[i_r].length );
                         }
