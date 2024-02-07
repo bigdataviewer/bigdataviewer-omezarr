@@ -173,6 +173,7 @@ public class MultiscaleImage< T extends NativeType< T > & RealType< T >, V exten
 			this.s3Client = src.s3Client;
 			this.bucketName = src.bucketName;
 			this.s3Mode = src.s3Mode;
+			this.s3Region = src.s3Region;
 		}
 
 		/**
