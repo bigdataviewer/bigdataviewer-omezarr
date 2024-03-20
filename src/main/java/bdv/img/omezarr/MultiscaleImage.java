@@ -211,10 +211,10 @@ public class MultiscaleImage< T extends NativeType< T > & RealType< T >, V exten
 		 */
 		public ZarrKeyValueReaderBuilder getSubImage(final String subPath) {
 			final ZarrKeyValueReaderBuilder z = new ZarrKeyValueReaderBuilder(this);
-			if (s3Client == null) {
-				z.multiscalePath = Paths.get(z.multiscalePath, subPath).toString();
-			} else {
+			if (s3Mode) {
 				z.multiscalePath = z.multiscalePath + "/" + subPath;
+			} else {
+				z.multiscalePath = Paths.get(z.multiscalePath, subPath).toString();
 			}
 			return z;
 		}
@@ -279,7 +279,7 @@ public class MultiscaleImage< T extends NativeType< T > & RealType< T >, V exten
 	{
 		if (imgs != null)
 			return;
-		try {
+//		try {
 //			final ZarrKeyValueReader zarrKeyValueReader = zarrKeyValueReaderBuilder.create();
 			// Initialize the images for all resolutions.
 			//
@@ -297,10 +297,11 @@ public class MultiscaleImage< T extends NativeType< T > & RealType< T >, V exten
 				else
 					vimgs[ resolution ] = VolatileViews.wrapAsVolatile( imgs[ resolution ], queue );
 			}
-		} catch (IOException e) {
-			e.printStackTrace();
-			throw new RuntimeException(e);
-		}
+//		}
+//		catch (IOException e) {
+//			e.printStackTrace();
+//			throw new RuntimeException(e);
+//		}
 
 	}
 

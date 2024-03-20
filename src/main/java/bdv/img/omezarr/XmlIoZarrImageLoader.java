@@ -90,7 +90,6 @@ public class XmlIoZarrImageLoader implements XmlIoBasicImgLoader<ZarrImageLoader
     @Override
     public ZarrImageLoader fromXml(final Element elem, final File basePath, final AbstractSequenceDescription< ?, ?, ? > sequenceDescription )
     {
-        final File zpath = loadPath( elem, "zarr", basePath );
         final Element zgroupsElem = elem.getChild( "zgroups" );
         final TreeMap<ViewId, String > zgroups = new TreeMap<>();
         // TODO validate that sequenceDescription and zgroups have the same entries
@@ -105,11 +104,14 @@ public class XmlIoZarrImageLoader implements XmlIoBasicImgLoader<ZarrImageLoader
         final MultiscaleImage.ZarrKeyValueReaderBuilder keyValueReaderBuilder;
         if (s3Bucket==null)
         {
-        keyValueReaderBuilder = new MultiscaleImage.ZarrKeyValueReaderBuilder(zpath.getAbsolutePath());
+            final File zpath = loadPath( elem, "zarr", basePath );
+            keyValueReaderBuilder = new MultiscaleImage.ZarrKeyValueReaderBuilder(zpath.getAbsolutePath());
         }
         else
         {
-            keyValueReaderBuilder = new MultiscaleImage.ZarrKeyValueReaderBuilder(s3Bucket.getText(), zpath.toString());
+            // `File` class should not be used for uri manipulation as it replaces slashes with backslashes on Windows
+            keyValueReaderBuilder = new MultiscaleImage.ZarrKeyValueReaderBuilder(s3Bucket.getText(),
+                    elem.getChildText("zarr"));
         }
         return new ZarrImageLoader(keyValueReaderBuilder, zgroups, sequenceDescription);
     }
