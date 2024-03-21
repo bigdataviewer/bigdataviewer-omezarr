@@ -10,7 +10,7 @@
 
 	<groupId>org.bigdataviewer</groupId>
 	<artifactId>bigdataviewer-omezarr</artifactId>
-	<version>0.2.1-SNAPSHOT</version>
+	<version>0.2.1</version>
 
 	<name>BigDataViewer OME-Zarr</name>
 	<description>This package provides multi image OME-Zarr support in bigdataviewer.</description>
@@ -70,7 +70,7 @@
 	<scm>
 		<connection>scm:git:https://github.com/bigdataviewer/bigdataviewer-omezarr</connection>
 		<developerConnection>scm:git:git@github.com:bigdataviewer/bigdataviewer-omezarr</developerConnection>
-		<tag>HEAD</tag>
+		<tag>bigdataviewer-omezarr-0.2.1</tag>
 		<url>https://github.com/bigdataviewer/bigdataviewer-omezarr</url>
 	</scm>
 	<issueManagement>
