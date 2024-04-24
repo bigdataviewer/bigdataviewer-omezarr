@@ -202,6 +202,13 @@ public class MultiscaleImage< T extends NativeType< T > & RealType< T >, V exten
 				return new N5ZarrReader(multiscalePath);
 			}
 		}
+		/**
+		 * Getter for s3 mode.
+		 * @return True if S3 mode is active.
+		 */
+		public boolean isS3Mode() {
+			return s3Mode;
+		}
 
 		/**
 		 * New reader builder for a sub-image.
