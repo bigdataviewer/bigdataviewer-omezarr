@@ -286,7 +286,7 @@ public class MultiscaleImage< T extends NativeType< T > & RealType< T >, V exten
 	{
 		if (imgs != null)
 			return;
-//		try {
+		try {
 //			final ZarrKeyValueReader zarrKeyValueReader = zarrKeyValueReaderBuilder.create();
 			// Initialize the images for all resolutions.
 			//
@@ -304,11 +304,11 @@ public class MultiscaleImage< T extends NativeType< T > & RealType< T >, V exten
 				else
 					vimgs[ resolution ] = VolatileViews.wrapAsVolatile( imgs[ resolution ], queue );
 			}
-//		}
-//		catch (IOException e) {
-//			e.printStackTrace();
-//			throw new RuntimeException(e);
-//		}
+		}
+		catch (IOException e) {
+			e.printStackTrace();
+			throw new RuntimeException(e);
+		}
 
 	}
 
