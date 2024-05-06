@@ -39,12 +39,15 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.TreeMap;
 
+import com.amazonaws.regions.DefaultAwsRegionProviderChain;
 import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.XmlHelpers;
 import mpicbg.spim.data.generic.sequence.AbstractSequenceDescription;
 import mpicbg.spim.data.generic.sequence.ImgLoaderIo;
 import mpicbg.spim.data.generic.sequence.XmlIoBasicImgLoader;
 import mpicbg.spim.data.sequence.ViewId;
+import org.janelia.saalfeldlab.n5.N5Reader;
+import org.janelia.saalfeldlab.n5.universe.N5Factory;
 import org.jdom2.Element;
 
 import static mpicbg.spim.data.XmlHelpers.loadPath;
@@ -55,20 +58,21 @@ public class XmlIoZarrImageLoader implements XmlIoBasicImgLoader<ZarrImageLoader
     @Override
     public Element toXml(final ZarrImageLoader imgLoader, final File basePath) {
         final Element e_imgloader = new Element("ImageLoader");
-        final MultiscaleImage.ZarrKeyValueReaderBuilder readerBuilder = imgLoader.getZarrKeyValueReaderBuilder();
+//        final MultiscaleImage.ZarrKeyValueReaderBuilder readerBuilder = imgLoader.getZarrKeyValueReaderBuilder();
         e_imgloader.setAttribute(IMGLOADER_FORMAT_ATTRIBUTE_NAME, "bdv.multimg.zarr");
         e_imgloader.setAttribute("version", "1.0");
-        if (readerBuilder.isS3Mode()) {
+
+        if (imgLoader.getS3Bucket()!=null) {
             final Element e_bucket = new Element("s3bucket");
-            e_bucket.addContent(readerBuilder.getBucketName());
+            e_bucket.addContent(imgLoader.getS3Bucket());
             e_imgloader.addContent(e_bucket);
             final Element e_zarr = new Element("zarr");
             e_zarr.setAttribute("type", "absolute");
-            e_zarr.addContent(readerBuilder.getMultiscalePath());
+            e_zarr.addContent(imgLoader.getBucketPath());
             e_imgloader.addContent(e_zarr);
         } else {
             e_imgloader.addContent(XmlHelpers.pathElement("zarr",
-                    new File(readerBuilder.getMultiscalePath()), null));
+                    new File(imgLoader.getBucketPath()), null));
         }
         final Element e_zgroups = new Element("zgroups");
         for (final Map.Entry<ViewId, String> ze : imgLoader.getZgroups().entrySet()) {
@@ -98,16 +102,18 @@ public class XmlIoZarrImageLoader implements XmlIoBasicImgLoader<ZarrImageLoader
             zgroups.put(new ViewId(timepointId, setupId), path);
         }
         final Element s3Bucket = elem.getChild("s3bucket");
-        final MultiscaleImage.ZarrKeyValueReaderBuilder keyValueReaderBuilder;
         if (s3Bucket == null) {
             final File zpath = loadPath(elem, "zarr", basePath);
-            keyValueReaderBuilder = new MultiscaleImage.ZarrKeyValueReaderBuilder(zpath.getAbsolutePath());
+            final N5Reader n5r = new N5Factory().openReader(N5Factory.StorageFormat.ZARR, zpath.getAbsolutePath());
+            return new ZarrImageLoader(n5r, null, zpath.getAbsolutePath(), zgroups, sequenceDescription);
         } else {
             // `File` class should not be used for uri manipulation as it replaces slashes with backslashes on Windows
-            keyValueReaderBuilder = new MultiscaleImage.ZarrKeyValueReaderBuilder(s3Bucket.getText(),
-                    elem.getChildText("zarr"));
+            final String s3Region = new DefaultAwsRegionProviderChain().getRegion();
+            final String zarrPath = elem.getChildText("zarr");
+            final N5Reader n5r = new N5Factory().s3Region(s3Region).s3UseCredentials().openReader(
+                    N5Factory.StorageFormat.ZARR,  "s3://" + s3Bucket.getText() + "/" + zarrPath);
+            return new ZarrImageLoader(n5r, s3Bucket.getText(), zarrPath, zgroups, sequenceDescription);
         }
-        return new ZarrImageLoader(keyValueReaderBuilder, zgroups, sequenceDescription);
     }
 
     public static void main(String[] args) throws SpimDataException {

@@ -59,6 +59,7 @@ import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.view.Views;
+import org.janelia.saalfeldlab.n5.N5Reader;
 
 /**
  * Image loader for OME-NGFF images that are defined as views in the xml file.
@@ -73,9 +74,10 @@ public class ZarrImageLoader implements ViewerImgLoader, MultiResolutionImgLoade
         1000000, 10000000, 100000000, 1000000000};
     private final SortedMap<ViewId, String> zgroups;
     private final AbstractSequenceDescription<?, ?, ?> seq;
-    private final MultiscaleImage.ZarrKeyValueReaderBuilder zarrKeyValueReaderBuilder;
-
-
+//    private final MultiscaleImage.ZarrKeyValueReaderBuilder zarrKeyValueReaderBuilder;
+    private final N5Reader n5Reader;
+    private final String s3Bucket; // Only used by the xml writer whether to generate the s3bucket entry if not null
+    private final String bucketPath; // Only used by the xml writer whether to generate the zarr entry if not null
     private volatile boolean isOpen = false;
 
     private int requestedNumFetcherThreads = -1;
@@ -93,10 +95,29 @@ public class ZarrImageLoader implements ViewerImgLoader, MultiResolutionImgLoade
         return Math.rint(s * POWERS_OF_10[decimals]) / (double) POWERS_OF_10[decimals];
     }
 
-    public ZarrImageLoader(final MultiscaleImage.ZarrKeyValueReaderBuilder zarrKeyValueReaderBuilder, final SortedMap<ViewId, String> zgroups, final AbstractSequenceDescription<?, ?, ?> sequenceDescription) {
+//    public ZarrImageLoader(final MultiscaleImage.ZarrKeyValueReaderBuilder zarrKeyValueReaderBuilder, final SortedMap<ViewId, String> zgroups, final AbstractSequenceDescription<?, ?, ?> sequenceDescription) {
+//        this.zgroups = zgroups;
+//        this.seq = sequenceDescription;
+//        this.zarrKeyValueReaderBuilder=zarrKeyValueReaderBuilder;
+//        this.kva = null;
+//    }
+
+    public ZarrImageLoader(final N5Reader n5Reader, final String s3Bucket,
+                           final String bucketPath,
+                           final SortedMap<ViewId, String> zgroups, final AbstractSequenceDescription<?, ?, ?> sequenceDescription) {
         this.zgroups = zgroups;
         this.seq = sequenceDescription;
-        this.zarrKeyValueReaderBuilder=zarrKeyValueReaderBuilder;
+        this.n5Reader = n5Reader;
+        this.s3Bucket = s3Bucket;
+        this.bucketPath = bucketPath;
+    }
+
+    public String getS3Bucket() {
+        return s3Bucket;
+    }
+
+    public String getBucketPath() {
+        return bucketPath;
     }
 
     void openZarr() {
@@ -148,8 +169,7 @@ public class ZarrImageLoader implements ViewerImgLoader, MultiResolutionImgLoade
         ViewId firstVId = new ViewId(tpIds.pollFirst(), setupId);
         if (firstVId == null)
             return null;
-
-        final MultiscaleImage<T, V> mscImg = new MultiscaleImage<>(zarrKeyValueReaderBuilder.getSubImage(zgroups.get(firstVId)));
+        final MultiscaleImage<T, V> mscImg = new MultiscaleImage<>(n5Reader, zgroups.get(firstVId));
         return new SetupImgLoader<T, V>(mscImg, firstVId, tpIds);
     }
 
@@ -159,9 +179,9 @@ public class ZarrImageLoader implements ViewerImgLoader, MultiResolutionImgLoade
         return cache;
     }
 
-    public MultiscaleImage.ZarrKeyValueReaderBuilder getZarrKeyValueReaderBuilder() {
-        return zarrKeyValueReaderBuilder;
-    }
+//    public MultiscaleImage.ZarrKeyValueReaderBuilder getZarrKeyValueReaderBuilder() {
+//        return zarrKeyValueReaderBuilder;
+//    }
 
     public SortedMap<ViewId, String> getZgroups() {
         return zgroups;
@@ -194,7 +214,7 @@ public class ZarrImageLoader implements ViewerImgLoader, MultiResolutionImgLoade
             for (int tpId : tpIdSet) {
                 // TODO validate that further timepoints have the same type
                 tpMmultiscaleImages.put(tpId, new MultiscaleImage<>(
-                        zarrKeyValueReaderBuilder.getSubImage(zgroups.get(new ViewId(tpId, setupId)))));
+                        n5Reader, zgroups.get(new ViewId(tpId, setupId))));
             }
 
             calculateMipmapTransforms();

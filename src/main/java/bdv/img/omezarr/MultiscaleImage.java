@@ -63,11 +63,10 @@ import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Cast;
-import org.janelia.saalfeldlab.n5.DataType;
-import org.janelia.saalfeldlab.n5.DatasetAttributes;
-import org.janelia.saalfeldlab.n5.N5Exception;
+import org.janelia.saalfeldlab.n5.*;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 import org.janelia.saalfeldlab.n5.s3.AmazonS3KeyValueAccess;
+import org.janelia.saalfeldlab.n5.universe.N5Factory;
 import org.janelia.saalfeldlab.n5.zarr.N5ZarrReader;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
 
@@ -90,156 +89,9 @@ public class MultiscaleImage< T extends NativeType< T > & RealType< T >, V exten
 	 * and connection instance.
 	 *
 	 */
-	public static class ZarrKeyValueReaderBuilder {
-		private AmazonS3 s3Client;
-		private AWSCredentials s3Credentials = null;
-		private final boolean s3Mode;
-		private final String bucketName;
-		private String multiscalePath;
-		private String s3Region = null;
 
-		/**
-		 * Constructor for S3 reader.
-		 *
-		 * @param s3Client S3 access client. Instance is not copied.
-		 * @param bucketName Bucket name for access.
-		 * @param multiscalePath Base path within the bucket.
-		 */
-		public ZarrKeyValueReaderBuilder(final AmazonS3 s3Client, final String bucketName,
-										 final String multiscalePath) {
-			this.multiscalePath = multiscalePath;
-			this.s3Client = s3Client;
-			this.bucketName = bucketName;
-			this.s3Mode = true;
-		}
+	private final N5Reader n5Reader;
 
-		public ZarrKeyValueReaderBuilder(final String bucketName,
-										 final String multiscalePath)
-		{
-			this(null, bucketName, multiscalePath);
-		}
-		public void setCredentials(AWSCredentials s3Credentials)
-		{
-			if (!s3Mode)
-				return;
-			this.s3Credentials = s3Credentials;
-		}
-
-		public void setRegion(final String region)
-		{
-			if (!s3Mode)
-				return;
-			this.s3Region = region;
-		}
-
-		public void initS3Client()
-		{
-			if (!s3Mode)
-				return;
-
-			if (s3Region==null)
-				s3Region = new DefaultAwsRegionProviderChain().getRegion();
-
-			if (s3Client==null)
-			{
-				final AWSStaticCredentialsProvider credentialsProvider;
-				if (s3Credentials==null)
-				{
-					try {
-						s3Credentials = new DefaultAWSCredentialsProviderChain().getCredentials();
-						System.out.println( "Got credentials from default chain." );
-					}
-					catch(final Exception e) {
-						System.out.println( "Could not load AWS credentials, falling back to anonymous." );
-					}
-				}
-				credentialsProvider = new AWSStaticCredentialsProvider(s3Credentials == null ? new AnonymousAWSCredentials() : s3Credentials);
-				final ClientConfiguration s3Conf = new ClientConfiguration().withRetryPolicy(PredefinedRetryPolicies.getDefaultRetryPolicyWithCustomMaxRetries(32));
-				s3Client = AmazonS3ClientBuilder.standard().withRegion(s3Region).withCredentials(credentialsProvider).withClientConfiguration(s3Conf).build();
-			}
-		}
-
-		/**
-		 * Shallow copy constructor.
-		 *
-		 * Make shallow copy. S3 client instance will be shared.
-		 *
-		 * @param src Source instance.
-		 */
-		public ZarrKeyValueReaderBuilder(final ZarrKeyValueReaderBuilder src)
-		{
-			this.multiscalePath = src.multiscalePath;
-			this.s3Credentials = src.s3Credentials;
-			this.s3Client = src.s3Client;
-			this.bucketName = src.bucketName;
-			this.s3Mode = src.s3Mode;
-		}
-
-		/**
-		 * Constructor for filesystem access.
-		 * @param multiscalePath Base path for zarr images.
-		 */
-		public ZarrKeyValueReaderBuilder(final String multiscalePath) {
-			this.multiscalePath = multiscalePath;
-			this.s3Client = null;
-			this.bucketName = null;
-			this.s3Mode = false;
-		}
-
-		/**
-		 * Build new reader instance.
-		 *
-		 * @return New N5ZarrReader instance for filesystem. New ZarrKeyValueReader instance for S3 access.
-		 * @throws N5Exception New reader instance constructor exception propagates up.
-		 */
-		public ZarrKeyValueReader build() throws N5Exception {
-			if (s3Mode) {
-				initS3Client();
-				final AmazonS3KeyValueAccess s3KeyValueAccess = new AmazonS3KeyValueAccess(s3Client, bucketName, false);
-				return new ZarrKeyValueReader(s3KeyValueAccess, multiscalePath, new GsonBuilder(),
-						false, false, true);
-			} else {
-				return new N5ZarrReader(multiscalePath);
-			}
-		}
-		/**
-		 * Getter for s3 mode.
-		 * @return True if S3 mode is active.
-		 */
-		public boolean isS3Mode() {
-			return s3Mode;
-		}
-
-		/**
-		 * New reader builder for a sub-image.
-		 *
-		 * @param subPath Sub-path for sub-image in the zarr hierarchy.
-		 * @return New shallow-copy builder instance pointing to base path/subpath.
-		 */
-		public ZarrKeyValueReaderBuilder getSubImage(final String subPath) {
-			final ZarrKeyValueReaderBuilder z = new ZarrKeyValueReaderBuilder(this);
-			if (s3Mode) {
-				z.multiscalePath = z.multiscalePath + "/" + subPath;
-			} else {
-				z.multiscalePath = Paths.get(z.multiscalePath, subPath).toString();
-			}
-			return z;
-		}
-
-		/**
-		 * @return Stored base path in this builder instance.
-		 */
-		public String getMultiscalePath()
-		{
-			return multiscalePath;
-		}
-
-		/**
-		 * @return Stored bucket name or null.
-		 */
-		public String getBucketName(){ return bucketName; }
-	}
-	private final ZarrKeyValueReaderBuilder zarrKeyValueReaderBuilder;
 	private SharedQueue queue;
 
 	private int numResolutions;
@@ -264,15 +116,25 @@ public class MultiscaleImage< T extends NativeType< T > & RealType< T >, V exten
 
 	private DataType[] multiDataType;
 
+	private String multiscalePath; // Our own root path within the n5reader
 	/**
 	 * TODO
 	 */
 
+//	public MultiscaleImage(
+//			final ZarrKeyValueReaderBuilder keyValueReaderBuilder)
+//	{
+//		this.zarrKeyValueReaderBuilder=keyValueReaderBuilder;
+//	}
+
 	public MultiscaleImage(
-			final ZarrKeyValueReaderBuilder keyValueReaderBuilder)
+			final N5Reader n5Reader, final String multiscalePath)
 	{
-		this.zarrKeyValueReaderBuilder=keyValueReaderBuilder;
+		this.n5Reader = n5Reader;
+		this.multiscalePath = multiscalePath; // No slash at the end
 	}
+
+
 //	public MultiscaleImage(
 //			final String multiscalePath)
 //	{
@@ -287,9 +149,6 @@ public class MultiscaleImage< T extends NativeType< T > & RealType< T >, V exten
 		if (imgs != null)
 			return;
 		try {
-//			final ZarrKeyValueReader zarrKeyValueReader = zarrKeyValueReaderBuilder.create();
-			// Initialize the images for all resolutions.
-			//
 			// TODO only on demand
 			// See N5ImageLoader.prepareCachedImage
 			imgs = new CachedCellImg[ numResolutions ];
@@ -297,7 +156,7 @@ public class MultiscaleImage< T extends NativeType< T > & RealType< T >, V exten
 
 			for ( int resolution = 0; resolution < numResolutions; ++resolution )
 			{
-				imgs[ resolution ] = N5Utils.openVolatile( zarrKeyValueReaderBuilder.build(), multiscales.getDatasets()[ resolution ].path );
+				imgs[ resolution ] = N5Utils.openVolatile( n5Reader, multiscalePath + "/" + multiscales.getDatasets()[ resolution ].path );
 
 				if ( queue == null )
 					vimgs[ resolution ] = VolatileViews.wrapAsVolatile( imgs[ resolution ] );
@@ -318,13 +177,12 @@ public class MultiscaleImage< T extends NativeType< T > & RealType< T >, V exten
 	private void init()
 	{
 		if ( multiscales != null ) return;
-		zarrKeyValueReaderBuilder.initS3Client();
-		try (final ZarrKeyValueReader zarrKeyValueReader = zarrKeyValueReaderBuilder.build())
+//		zarrKeyValueReaderBuilder.initS3Client();
+		try
 		{
 			// Fetch metadata
 			//
-			Multiscales[] multiscalesArray = zarrKeyValueReader.getAttribute( "", MULTI_SCALE_KEY, Multiscales[].class );
-
+			Multiscales[] multiscalesArray = n5Reader.getAttribute( multiscalePath, MULTI_SCALE_KEY, Multiscales[].class );
 			// In principle the call above would be sufficient.
 			// However since we need to support different
 			// versions of OME-Zarrr we need to "manually"
@@ -333,13 +191,13 @@ public class MultiscaleImage< T extends NativeType< T > & RealType< T >, V exten
 			// information.
 			// TODO: could we do this by means of a JsonDeserializer?
 
-			final JsonArray multiscalesJsonArray;
-			multiscalesJsonArray = zarrKeyValueReader.getAttributes( "" ).getAsJsonObject().get( MULTI_SCALE_KEY ).getAsJsonArray();
-			for ( int i = 0; i < multiscalesArray.length; i++ )
-			{
-				multiscalesArray[ i ].applyVersionFixes( multiscalesJsonArray.get( i ).getAsJsonObject() );
-				multiscalesArray[ i ].init();
-			}
+//			final JsonArray multiscalesJsonArray;
+//			multiscalesJsonArray = n5Reader.getAttributes( "" ).getAsJsonObject().get( MULTI_SCALE_KEY ).getAsJsonArray();
+//			for ( int i = 0; i < multiscalesArray.length; i++ )
+//			{
+//				multiscalesArray[ i ].applyVersionFixes( multiscalesJsonArray.get( i ).getAsJsonObject() );
+//				multiscalesArray[ i ].init();
+//			}
 
 			// TODO
 			//   From the spec:
@@ -364,7 +222,7 @@ public class MultiscaleImage< T extends NativeType< T > & RealType< T >, V exten
 			multiDataType = new DataType[numResolutions];
 
 			for (int resolution = numResolutions-1; resolution >= 0; --resolution) {
-				final DatasetAttributes attributes = zarrKeyValueReader.getDatasetAttributes(datasets[resolution].path);
+				final DatasetAttributes attributes = n5Reader.getDatasetAttributes(multiscalePath + "/" + datasets[resolution].path);
 				// n5-zarr provides dimensions in the java order
 				multiDimensions[resolution] = attributes.getDimensions();
 				multiDataType[resolution] = attributes.getDataType();
@@ -494,23 +352,28 @@ public class MultiscaleImage< T extends NativeType< T > & RealType< T >, V exten
 //		final String multiscalePath = "/home/gabor.kovacs/data/davidf_sample_dataset/SmartSPIM_617052_sample.zarr";
 //		final MultiscaleImage< ?, ? > multiscaleImage = new MultiscaleImage<>(new ZarrKeyValueReaderBuilder(multiscalePath));
 //		System.out.println(Arrays.toString(multiscaleImage.dimensions()));
+
 //		final AmazonS3 s3 = AmazonS3ClientBuilder.standard().withRegion(Regions.US_WEST_2).build();
-		final AWSStaticCredentialsProvider credentialsProvider = new AWSStaticCredentialsProvider(new AnonymousAWSCredentials());
 //		final AmazonS3 s3 = AmazonS3ClientBuilder.standard()
 //				.withCredentials(credentialsProvider)
 //				.withRegion(Regions.US_WEST_2)
 //				.build();
-		final MultiscaleImage<?, ?> multiscaleImage = new MultiscaleImage<>(
-				new ZarrKeyValueReaderBuilder(AmazonS3ClientBuilder.standard()
-						.withCredentials(credentialsProvider)
-						.withRegion(Regions.US_WEST_2).build(), "aind-open-data",
-						"/exaSPIM_653431_2023-05-06_10-23-15/exaSPIM.zarr/tile_x_0000_y_0000_z_0000_ch_488.zarr/"));
+//		final MultiscaleImage<?, ?> multiscaleImage = new MultiscaleImage<>(
+//				new ZarrKeyValueReaderBuilder(AmazonS3ClientBuilder.standard()
+//						.withCredentials(credentialsProvider)
+//						.withRegion(Regions.US_WEST_2).build(), "aind-open-data",
+//						"/exaSPIM_653431_2023-05-06_10-23-15/exaSPIM.zarr/tile_x_0000_y_0000_z_0000_ch_488.zarr/"));
+//
+//		final String s3Region = new DefaultAwsRegionProviderChain().getRegion();
+		final N5Reader n5r = new N5Factory().s3UseCredentials().openReader(
+				N5Factory.StorageFormat.ZARR,  "s3://aind-open-data/exaSPIM_653431_2023-05-06_10-23-15/exaSPIM.zarr");
+		final MultiscaleImage<?, ?> multiscaleImage = new MultiscaleImage<>(n5r,
+				"tile_x_0000_y_0000_z_0000_ch_488.zarr/");
 		System.out.println(Arrays.toString(multiscaleImage.dimensions()));
-
-//		S3Object myobj = s3.getObject("aind-open-data","exaSPIM_653431_2023-05-06_10-23-15/exaSPIM.zarr/tile_x_0000_y_0000_z_0000_ch_488"
-//						+".zarr/.zattrs");
-//		S3ObjectInputStream inputStream = myobj.getObjectContent();
-//		String result = IOUtils.toString(inputStream, StandardCharsets.UTF_8);
-//		System.out.println(result);
+		System.out.println(multiscaleImage.numResolutions());
+		for (int i=0; i<multiscaleImage.numResolutions(); i++)
+		{
+		 			System.out.println(Arrays.toString(multiscaleImage.getDimensions(i)));
+		}
 	}
 }
