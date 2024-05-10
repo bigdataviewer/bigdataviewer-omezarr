@@ -69,6 +69,8 @@ import net.imglib2.view.Views;
  */
 public class ZarrImageLoader implements ViewerImgLoader, MultiResolutionImgLoader, Closeable {
 //    private final String zpath;
+    private static final int[] POWERS_OF_10 = {1, 10, 100, 1000, 10000, 100000,
+        1000000, 10000000, 100000000, 1000000000};
     private final SortedMap<ViewId, String> zgroups;
     private final AbstractSequenceDescription<?, ?, ?> seq;
     private final MultiscaleImage.ZarrKeyValueReaderBuilder zarrKeyValueReaderBuilder;
@@ -83,6 +85,13 @@ public class ZarrImageLoader implements ViewerImgLoader, MultiResolutionImgLoade
 
     private SortedMap<Integer, SetupImgLoader> setupImgLoaders;
 
+    public static double roundDouble(double s, int decimals) {
+        if (decimals < 0)
+            return s;
+        if (decimals >= POWERS_OF_10.length)
+            throw new IllegalArgumentException("Decimals out of range");
+        return Math.rint(s * POWERS_OF_10[decimals]) / (double) POWERS_OF_10[decimals];
+    }
 
     public ZarrImageLoader(final MultiscaleImage.ZarrKeyValueReaderBuilder zarrKeyValueReaderBuilder, final SortedMap<ViewId, String> zgroups, final AbstractSequenceDescription<?, ?, ?> sequenceDescription) {
         this.zgroups = zgroups;
@@ -296,6 +305,10 @@ public class ZarrImageLoader implements ViewerImgLoader, MultiResolutionImgLoade
             return affT;
         }
 
+
+        private void calculateMipmapTransforms() {
+            calculateMipmapTransforms(4);
+        }
         /**
          * Create the 3D affine transformations and calculate the resolution factors
          * for the multi resolution display relative to the first resolution.
@@ -315,7 +328,7 @@ public class ZarrImageLoader implements ViewerImgLoader, MultiResolutionImgLoade
          *
          * <p>Set "mipmaptransforms" and "mipmapresolutions".</p>
          */
-        private void calculateMipmapTransforms() {
+        private void calculateMipmapTransforms(int decimals) {
             // Assume everything is the same in case there are multiple timepoints
             final Multiscales mscale = tpMmultiscaleImages.get(0).getMultiscales();
             final int numResolutions = tpMmultiscaleImages.get(0).numResolutions();
@@ -335,15 +348,19 @@ public class ZarrImageLoader implements ViewerImgLoader, MultiResolutionImgLoade
             for (int j = 1; j < numResolutions; ++j) {
                 final AffineTransform3D affT = T0inv.copy();
                 affT.concatenate(mipmaptransforms[j]);
+                affT.set(roundDouble(affT.get(0, 0), decimals),0,0);
+                affT.set(roundDouble(affT.get(1, 1), decimals),1,1);
+                affT.set(roundDouble(affT.get(2, 2), decimals),2,2);
                 mipmaptransforms[j] = affT;
             }
 
             // Copy out the scaling from the transformations to the mipmapresolutions
             mipmapresolutions = new double[numResolutions][];
             for (int j = 0; j < numResolutions; ++j) {
-                mipmapresolutions[j] = new double[]{mipmaptransforms[j].get(0, 0),
+                mipmapresolutions[j] = new double[]{
+                        mipmaptransforms[j].get(0, 0),
                         mipmaptransforms[j].get(1, 1),
-                        mipmaptransforms[j].get(2, 2)};
+                        mipmaptransforms[j].get(2, 2) };
             }
 
             // Add pixel center correction
@@ -353,7 +370,6 @@ public class ZarrImageLoader implements ViewerImgLoader, MultiResolutionImgLoade
                         0.5 * (mipmapresolutions[j][1] - 1.),
                         0.5 * (mipmapresolutions[j][2] - 1.));
             }
-
         }
 
         @Override
