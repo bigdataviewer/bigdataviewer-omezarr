@@ -35,6 +35,7 @@ import bdv.spimdata.SpimDataMinimal;
 import bdv.spimdata.XmlIoSpimDataMinimal;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -110,15 +111,13 @@ public class XmlIoZarrImageLoader implements XmlIoBasicImgLoader<ZarrImageLoader
     }
 
     public static void main(String[] args) throws SpimDataException {
-//        final String fn = "/home/gkovacs/data/davidf_zarr_dataset.xml";
-        final String fn = "/home/gabor.kovacs/data/davidf_zarr_dataset.xml";
-//        final String fn = "/home/gabor.kovacs/data/zarr_reader_test_2022-11-16/bdv_zarr_test3.xml";
-//        final String fn = "/Users/kgabor/data/davidf_zarr_dataset.xml";
+        final String fn = "/home/gkovacs/data/davidf_sample_dataset/davidf_zarr_dataset.xml";
+//        final String fn = "/home/gabor.kovacs/data/davidf_zarr_dataset.xml";
         final SpimDataMinimal spimData = new XmlIoSpimDataMinimal().load(fn);
         final ViewerImgLoader imgLoader = (ViewerImgLoader) spimData.getSequenceDescription().getImgLoader();
         final ViewerSetupImgLoader<?, ?> setupImgLoader = imgLoader.getSetupImgLoader(0);
         int d = setupImgLoader.getImage(0).numDimensions();
-        setupImgLoader.getMipmapResolutions();
+        System.out.println(Arrays.toString(setupImgLoader.getMipmapTransforms()));
 //        BigDataViewer.open(spimData, "BigDataViewer Zarr Example", new ProgressWriterConsole(), ViewerOptions.options());
         System.out.println("imgLoader = " + imgLoader);
         System.out.println("setupimgLoader = " + setupImgLoader);
